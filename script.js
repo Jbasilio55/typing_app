@@ -1,3 +1,14 @@
+const timer = document.getElementById("timer");
+const tryAgainBtn = document.getElementById("try-again");
+const finalScore = document.getElementById("final-score");
+const textContainer = document.getElementById("text-container");
+let totalTyped = "";
+let errors = 0;
+let timeLeft = 60;
+let timerInterval;
+let typingStarted = false;
+let currCharIndex = 0;
+
 async function getWords() {
   try {
     let words = [];
@@ -12,36 +23,77 @@ async function getWords() {
     const data = await res.json();
     words = shuffleArray(data).join(" ");
     initializeApp(words);
+    init();
   } catch (error) {
     console.log(error);
   }
 }
 
+function init() {
+  if (isMobileDevice()) {
+    showMobileMessage();
+  } else {
+    textContainer.innerText = longText;
+    timerElement.textContent = `Time left: ${timeLeft}s`;
+  }
+}
+
+// Detect if the device is mobile
+function isMobileDevice() {
+  return /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 800;
+}
+
+// Show message for mobile users
+function showMobileMessage() {
+  textContainer.textContent =
+    "This typing test is designed for desktop use only";
+}
+
 // Shuffle words in array
 function shuffleArray(array) {
-  // Starting at the last element, iterate down to 1
   for (let i = array.length - 1; i > 0; i--) {
-    // Pick random index in array
     const j = Math.floor(Math.random() * (i + 1));
-    // Shuffle array by swapping i and j
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
 }
 
+function startTimer() {
+  if (!typingStarted) {
+    typingStarted = true;
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timer.textContent = `Time Left: ${timeLeft}s`;
+
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        endTest();
+      }
+    }, 1000);
+  }
+}
+
+function endTest() {
+  clearInterval(timerInterval);
+  timer.textContent = "Time is up!";
+  finalScore.textContent = `Final WPM: ${calculateWPM()}`;
+  textContainer.style.display = "none";
+  tryAgainBtn.style.display = "block";
+}
+
+function calculateWPM() {
+  const wordsTyped = totalTyped.trim().split(/\s+/).length;
+  const baseWPM = Math.round((wordsTyped / 60) * 60);
+  const adjustedWPM = Math.max(baseWPM - errors, 0);
+  return adjustedWPM;
+}
+
 function initializeApp(words) {
-  const textContainer = document.getElementById("text-container");
-  const timer = document.getElementById("timer");
-  const tryAgainBtn = document.getElementById("try-again");
-  const finalScore = document.getElementById("final-score");
-
-  let totalTyped = "";
-  let currCharIndex = 0;
-  let errors = 0;
-
+  totalTyped = "";
+  errors = 0;
+  currCharIndex = 0;
   textContainer.textContent = words;
 
-  //Handle typing over the displayed text and scrolling
   document.addEventListener("keydown", (e) => {
     if (e.key === "Backspace") {
       if (totalTyped.length > 0) {
@@ -73,12 +125,31 @@ function initializeApp(words) {
       textContainer.appendChild(span);
     }
 
-    //Scroll the container after 20 char
     if (totalTyped.length >= 20) {
       const scrollAmount = (totalTyped.length - 20) * 14;
       textContainer.scrollLeft = scrollAmount;
     }
+
+    startTimer();
   });
 }
+
+function resetTest() {
+  clearInterval(timerInterval);
+  timeLeft = 60;
+  timer.textContent = `Time Left: ${timeLeft}s`;
+  finalScore.textContent = "";
+  textContainer.style.display = "block";
+  tryAgainBtn.style.display = "none";
+  totalTyped = "";
+  typingStarted = false;
+  currCharIndex = 0;
+  errors = 0;
+  textContainer.scrollLeft = 0;
+
+  getWords();
+}
+
+tryAgainBtn.addEventListener("click", resetTest);
 
 getWords();

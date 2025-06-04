@@ -12,9 +12,7 @@ let currCharIndex = 0;
 async function getWords() {
   try {
     let words = [];
-    const res = await fetch(
-      "https://random-word-api.herokuapp.com/word?number=300"
-    );
+    const res = await fetch("https://random-word-api.vercel.app/api?words=300");
 
     if (!res.ok) {
       throw new Error("Could not fetch resource");
